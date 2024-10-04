@@ -3686,6 +3686,14 @@ function autoWallOff() {
   }
 }
 
+function showLicense() {
+  document.getElementById('license').setAttribute("visibility", "visible");
+}
+
+function hideLicense() {
+  document.getElementById('license').setAttribute("visibility", "hidden");
+}
+
 onload = initialize;
 ]]></script>
   <defs>
@@ -4610,9 +4618,9 @@ onload = initialize;
     <tspan x="30" dy="20">
       <a id="demo" class="link" xlink:href="javascript:Demo.start()">Demo</a>
       <a id="source" class="link" target="_blank" title="Source code is available" xlink:href="https://alexschroeder.ch/cgit/gridmapper/about/#gridmapper">Source</a>
-      <a id="license" class="link" target="_blank" title="Dedicated to the Public Domain" xlink:href="https://alexschroeder.ch/cgit/gridmapper/tree/LICENSE.md#the-license">License</a>
-      <a id="bugs" class="link" target="_blank" title="Submit a bug report" xlink:href="https://alexschroeder.ch/software/Gridmapper">Issues</a>
-      <a id="bugs" class="link" target="_blank" title="Public dungeons" xlink:href="https://campaignwiki.org/wiki/Gridmapper/HomePage">Wiki</a>
+      <a id="legal" class="link" title="Dedicated to the Public Domain" xlink:href="javascript:showLicense()">License</a>
+      <a id="issues" class="link" title="Submit a bug report" xlink:href="mailto:alex@gnu.org">Bugs</a>
+      <a id="wiki" class="link" target="_blank" title="Public dungeons" xlink:href="https://campaignwiki.org/wiki/Gridmapper/HomePage">Wiki</a>
     </tspan>
   </text>
 
@@ -4757,4 +4765,21 @@ onload = initialize;
   <tspan class="step21" x="0" dy="20">What lies beyond the secret door to the east?</tspan>
 
 </text>
+<g id="license" visibility="hidden">
+  <rect x="40" y="40" width="560" height="380" fill="white" stroke="black" stroke-width="1"/>
+  <text>
+    <tspan x="60" y="70" style="font-style: italic">You can copy, modify, distribute and perform the work, even</tspan>
+    <tspan x="60" dy="20" style="font-style: italic">for commercial purposes, all without asking permission.</tspan>
+
+    <tspan x="60" dy="40">The author has dedicated Gridmapper to the <tspan style="font-weight: bold">public domain</tspan> by</tspan>
+    <tspan x="60" dy="20">waiving all of his rights to the work worldwide under copy-</tspan>
+    <tspan x="60" dy="20">right law, including all related and neighboring rights, to</tspan>
+    <tspan x="60" dy="20">the extent allowed by law.</tspan>
+
+    <tspan x="60" dy="40">The legal text:
+    <a class="link" href="http://creativecommons.org/publicdomain/zero/1.0/">CC0 1.0 Universal</a>.</tspan>
+
+    <tspan x="60" dy="40"><a class="link" href="javascript:hideLicense()">Close</a></tspan>
+  </text>
+</g>
 </svg>
