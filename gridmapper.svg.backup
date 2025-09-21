@@ -69,55 +69,6 @@ svg.blue #help { fill: #01b0f1; }
 
 /* thick rock walls to be displayed only when autoWaller is on*/
 .rockWall { display:none }
-
-/* Touch-friendly interface enhancements */
-@media (pointer: coarse) {
-  /* Increase touch target sizes on touch devices */
-  a, .key, text {
-    min-width: 44px;
-    min-height: 44px;
-    padding: 4px;
-  }
-  
-  /* Make tile palette more touch-friendly */
-  use {
-    cursor: pointer;
-  }
-  
-  /* Improve visibility of touch feedback */
-  #touch-feedback {
-    pointer-events: none;
-    z-index: 1000;
-  }
-}
-
-/* Specific styles for Apple Pencil support */
-@supports (touch-action: manipulation) {
-  #ui {
-    touch-action: manipulation;
-  }
-}
-
-/* Feedback element styles */
-#touch-feedback {
-  pointer-events: none;
-  transition: opacity 0.3s ease-in-out;
-  font-family: 'Arial', sans-serif;
-  text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
-}
-
-/* Enhanced pointer cursor styles */
-#pointer {
-  transition: all 0.1s ease-out;
-}
-
-/* Gesture zone indicators (for visual feedback during development) */
-.gesture-zone {
-  fill: rgba(0,255,0,0.1);
-  stroke: rgba(0,255,0,0.3);
-  stroke-width: 2;
-  pointer-events: none;
-}
   ]]></style>
 
   <script type="application/javascript"><![CDATA[
@@ -212,44 +163,13 @@ var Map = {
   },
 
   /**
-   * Enable editing on the map with enhanced touch support.
+   * Enable editing on the map.
    */
   enable: function() {
     Map.ui.onmousemove = Pen.update;
     Map.ui.ontouchend = Pen.update;
     Map.ui.onmousedown = penDown;
     Map.ui.ontouchstart = penDown;
-    
-    // Enhanced touch event handling for gestures
-    Map.ui.ontouchmove = function(evt) {
-      // Check for multi-touch gestures first
-      if (evt.touches && evt.touches.length > 1) {
-        handleMultiTouchGesture(evt);
-        return;
-      }
-      // Default behavior for single touch
-      Pen.update(evt);
-    };
-    
-    // Global touch event handlers for multi-touch gestures
-    document.addEventListener('touchstart', function(evt) {
-      if (evt.touches && evt.touches.length > 1) {
-        handleMultiTouchGesture(evt);
-      }
-    }, { passive: false });
-    
-    document.addEventListener('touchmove', function(evt) {
-      if (evt.touches && evt.touches.length > 1) {
-        handleMultiTouchGesture(evt);
-      }
-    }, { passive: false });
-    
-    document.addEventListener('touchend', function(evt) {
-      if (TouchGestures.multiTapTimeout || TouchGestures.gestureActive) {
-        handleMultiTouchGesture(evt);
-      }
-    }, { passive: false });
-    
     document.onkeydown = keyPressed; // capture arrow keys
     document.onkeypress = keyPressed; // capture character keys
   },
@@ -260,7 +180,6 @@ var Map = {
   disable: function() {
     Map.ui.onmousemove = null;
     Map.ui.ontouchend = null;
-    Map.ui.ontouchmove = null;
     Map.ui.onmousedown = null;
     Map.ui.ontouchstart = null;
     document.onkeydown = null; // capture arrow keys
@@ -2729,14 +2648,8 @@ function drawToCommand (x, y, tile, type) {
 
 /**
  * Call drawToCommand based on the position data in the event.
- * Enhanced with Apple Pencil pressure sensitivity support.
  */
 function drawTo (evt) {
-  // Handle Apple Pencil specific features
-  if (evt.type === 'touchmove') {
-    handleApplePencil(evt);
-  }
-  
   var target = Pen.position(evt);
   // draw up to the current position (at least once if we just started)
   do {
@@ -2752,183 +2665,6 @@ function drawTo (evt) {
 }
 
 /**
- * Touch and gesture handling object for enhanced tablet/iPad support
- */
-var TouchGestures = {
-  lastTouchTime: 0,
-  startX: 0,
-  startY: 0,
-  isPencil: false,
-  pressure: 0,
-  
-  // Multi-touch gesture tracking
-  gestureStartDistance: 0,
-  gestureStartScale: 1,
-  gestureActive: false,
-  
-  // Two/three finger tap detection
-  multiTapTimeout: null,
-  multiTapFingers: 0,
-  multiTapStartTime: 0
-};
-
-/**
- * Handle multi-touch gestures (2-finger undo, 3-finger redo, pinch-to-zoom)
- */
-function handleMultiTouchGesture(evt) {
-  evt.preventDefault();
-  
-  var touches = evt.touches;
-  var numTouches = touches.length;
-  
-  // Track start of multi-touch gesture
-  if (evt.type === 'touchstart') {
-    TouchGestures.multiTapFingers = numTouches;
-    TouchGestures.multiTapStartTime = Date.now();
-    
-    if (numTouches === 2) {
-      // Calculate initial distance for pinch detection
-      var dx = touches[0].pageX - touches[1].pageX;
-      var dy = touches[0].pageY - touches[1].pageY;
-      TouchGestures.gestureStartDistance = Math.sqrt(dx * dx + dy * dy);
-      TouchGestures.gestureActive = true;
-    }
-    
-    // Set timeout to detect taps vs gestures
-    TouchGestures.multiTapTimeout = setTimeout(function() {
-      TouchGestures.multiTapTimeout = null;
-    }, 300);
-    
-    return;
-  }
-  
-  // Handle touch end for multi-finger taps
-  if (evt.type === 'touchend' && TouchGestures.multiTapTimeout) {
-    var tapDuration = Date.now() - TouchGestures.multiTapStartTime;
-    
-    // Quick tap detection (under 300ms)
-    if (tapDuration < 300) {
-      if (TouchGestures.multiTapFingers === 2) {
-        // Two-finger tap: Undo
-        Commands.undo();
-        showFeedback('Undo');
-      } else if (TouchGestures.multiTapFingers === 3) {
-        // Three-finger tap: Redo
-        Commands.redo();
-        showFeedback('Redo');
-      }
-    }
-    
-    clearTimeout(TouchGestures.multiTapTimeout);
-    TouchGestures.multiTapTimeout = null;
-    TouchGestures.gestureActive = false;
-    return;
-  }
-  
-  // Handle pinch-to-zoom gesture
-  if (evt.type === 'touchmove' && numTouches === 2 && TouchGestures.gestureActive) {
-    var dx = touches[0].pageX - touches[1].pageX;
-    var dy = touches[0].pageY - touches[1].pageY;
-    var currentDistance = Math.sqrt(dx * dx + dy * dy);
-    
-    if (TouchGestures.gestureStartDistance > 0) {
-      var scale = currentDistance / TouchGestures.gestureStartDistance;
-      var scaleDelta = scale - TouchGestures.gestureStartScale;
-      
-      // Only trigger zoom if significant scale change
-      if (Math.abs(scaleDelta) > 0.1) {
-        handlePinchZoom(scale > TouchGestures.gestureStartScale);
-        TouchGestures.gestureStartScale = scale;
-      }
-    }
-    return;
-  }
-}
-
-/**
- * Handle pinch-to-zoom functionality
- */
-function handlePinchZoom(zoomIn) {
-  // Simple implementation: adjust tile size
-  var currentTileWidth = Map.tileWidth;
-  var newTileWidth;
-  
-  if (zoomIn) {
-    newTileWidth = Math.min(currentTileWidth * 1.1, 50); // Max zoom
-  } else {
-    newTileWidth = Math.max(currentTileWidth * 0.9, 10); // Min zoom
-  }
-  
-  if (newTileWidth !== currentTileWidth) {
-    Map.tileWidth = newTileWidth;
-    scaleTiles();
-    Pen.update(null);
-    showFeedback(zoomIn ? 'Zoom In' : 'Zoom Out');
-  }
-}
-
-/**
- * Show visual feedback for touch gestures
- */
-function showFeedback(message) {
-  // Create or update feedback element
-  var feedback = document.getElementById('touch-feedback');
-  if (!feedback) {
-    feedback = document.createElementNS(svgNs, 'text');
-    feedback.id = 'touch-feedback';
-    feedback.setAttribute('x', '20');
-    feedback.setAttribute('y', '50');
-    feedback.setAttribute('fill', 'blue');
-    feedback.setAttribute('font-size', '16');
-    feedback.setAttribute('font-weight', 'bold');
-    feedback.style.opacity = '0';
-    feedback.style.transition = 'opacity 0.3s ease';
-    document.getElementsByTagName('svg')[0].appendChild(feedback);
-  }
-  
-  feedback.textContent = message;
-  feedback.style.opacity = '1';
-  
-  // Fade out after 1 second
-  setTimeout(function() {
-    feedback.style.opacity = '0';
-  }, 1000);
-}
-
-/**
- * Enhanced Apple Pencil support with pressure sensitivity
- */
-function handleApplePencil(evt) {
-  if (TouchGestures.isPencil && evt.touches && evt.touches[0]) {
-    var touch = evt.touches[0];
-    
-    // Use pressure for different drawing modes
-    if (touch.force) {
-      TouchGestures.pressure = touch.force;
-      
-      // Light pressure: just move cursor
-      // Medium pressure: draw normally  
-      // Heavy pressure: could be used for different tile types
-      if (TouchGestures.pressure > 0.8) {
-        // Heavy pressure - could implement special mode
-        showFeedback('Heavy Pressure');
-      }
-    }
-    
-    // Handle Apple Pencil tilt if available
-    if (touch.altitudeAngle !== undefined && touch.azimuthAngle !== undefined) {
-      // Could use tilt for different drawing modes
-      // For now, just detect if pencil is tilted
-      var tiltThreshold = Math.PI / 4; // 45 degrees
-      if (touch.altitudeAngle < tiltThreshold) {
-        // Pencil is tilted - could implement shading mode
-        showFeedback('Tilt Mode');
-      }
-    }
-  }
-}
-
-/**
  * Sets the Pen down, ready for drawing. When setting down the pen
  * (onmousedown, penDown), we look at the current tile. If it's the
  * empty floor tile, we'll want to erase it. If there is no floor tile
@@ -2938,30 +2674,9 @@ function handleApplePencil(evt) {
  *
  * As for touch screens: If we are just touching the screen, don't
  * draw a tile. If we keep touching the screen, however, draw a tile.
- * Enhanced with multi-touch gesture support and Apple Pencil detection.
  */
 function penDown (evt) {
   wallModeOff();
-  
-  // Enhanced touch handling for multi-touch gestures
-  if (evt.type === 'touchstart') {
-    // Check for multi-touch gestures
-    if (evt.touches && evt.touches.length > 1) {
-      handleMultiTouchGesture(evt);
-      return;
-    }
-    
-    // Store touch info for Apple Pencil detection and gesture handling
-    TouchGestures.lastTouchTime = Date.now();
-    TouchGestures.startX = evt.touches[0].pageX;
-    TouchGestures.startY = evt.touches[0].pageY;
-    TouchGestures.isPencil = evt.touches[0].touchType === 'stylus';
-    TouchGestures.pressure = evt.touches[0].force || 0;
-    
-    // Handle Apple Pencil specific features
-    handleApplePencil(evt);
-  }
-  
   Pen.update(evt);
   if (Map.data.get(Pen.x, Pen.y).floor) {
     Pen.type = 'null';
@@ -2978,14 +2693,7 @@ function penDown (evt) {
   }
   // install new handler
   Map.ui.onmousemove = drawTo;
-  Map.ui.ontouchmove = function(evt) {
-    // Check for multi-touch during drawing
-    if (evt.touches && evt.touches.length > 1) {
-      handleMultiTouchGesture(evt);
-      return;
-    }
-    drawTo(evt);
-  };
+  Map.ui.ontouchmove = drawTo;
   // revert to pen tracking on mouse up *anywhere*
   document.onmouseup = function() {
     Map.ui.onmousemove = Pen.update;
@@ -2995,15 +2703,7 @@ function penDown (evt) {
     if (Date.now() > ts + 300 && pos === Pen.x + "," + Pen.y) {
       drawTo(evt);
     }
-    Map.ui.ontouchmove = function(evt) {
-      // Check for multi-touch gestures first
-      if (evt.touches && evt.touches.length > 1) {
-        handleMultiTouchGesture(evt);
-        return;
-      }
-      // Default behavior for single touch
-      Pen.update(evt);
-    };
+    Map.ui.ontouchmove = Pen.update;
   }
 }
 
@@ -4460,8 +4160,6 @@ onload = initialize;
       <tspan x="30" dy="17">or rotate tiles.
         <a xlink:href="javascript:interpret('v')">Use <tspan class="key">v</tspan> to pick variants</a>.
       </tspan>
-      <tspan x="30" dy="17" style="fill: #2563eb; font-weight: bold;">Touch/Tablet: Tap to place tiles, drag to draw. Two-finger tap: undo, three-finger tap: redo.</tspan>
-      <tspan x="30" dy="17" style="fill: #2563eb;">Apple Pencil: Pressure sensitivity supported. Pinch to zoom in/out.</tspan>
     </text>
 
     <svg x="30" y="150">
