@@ -231,25 +231,6 @@ var Map = {
       Pen.update(evt);
     };
     
-    // Global touch event handlers for multi-touch gestures
-    document.addEventListener('touchstart', function(evt) {
-      if (evt.touches && evt.touches.length > 1) {
-        handleMultiTouchGesture(evt);
-      }
-    }, { passive: false });
-    
-    document.addEventListener('touchmove', function(evt) {
-      if (evt.touches && evt.touches.length > 1) {
-        handleMultiTouchGesture(evt);
-      }
-    }, { passive: false });
-    
-    document.addEventListener('touchend', function(evt) {
-      if (TouchGestures.multiTapTimeout || TouchGestures.gestureActive) {
-        handleMultiTouchGesture(evt);
-      }
-    }, { passive: false });
-    
     document.onkeydown = keyPressed; // capture arrow keys
     document.onkeypress = keyPressed; // capture character keys
   },
@@ -2990,7 +2971,12 @@ function penDown (evt) {
   document.onmouseup = function() {
     Map.ui.onmousemove = Pen.update;
   }
-  document.ontouchend = function() {
+  document.ontouchend = function(evt) {
+    // Handle multi-touch end events for gestures
+    if (TouchGestures.multiTapTimeout || TouchGestures.gestureActive) {
+      handleMultiTouchGesture(evt);
+    }
+    
     // if this was a long touch and we haven't moved, draw a tile anyway
     if (Date.now() > ts + 300 && pos === Pen.x + "," + Pen.y) {
       drawTo(evt);
